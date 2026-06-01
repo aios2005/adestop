@@ -11,6 +11,7 @@
     <div class="game-container">
         <h1>AdeStop </h1>
 
+        <!-- LOBBY -->
         <div id="tela-lobby" class="screen">
             <div class="card">
                 <h3>Criar ou Entrar numa Sala</h3>
@@ -19,8 +20,12 @@
                 <input type="text" id="input-sala" placeholder="Código da Sala (Ex: 1234)">
                 <input type="text" id="input-nome" placeholder="Seu Nome/Apelido">
                 <button id="btn-entrar-sala" class="btn-secundario">Entrar na Sala</button>
-            </div>
 
+                <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT97JbE_neSxZjRjwnqYSH8f_BPARVy0HAFqQ&s" height="30%" width="30%">
+                <p style="color: rgb(255, 255, 255); margin-top: 5%;">Desenvolvido por: Antonio Ivo (2026)</p>
+                <p style="color: rgb(255, 255, 255);"><a href="https://github.com/aios2005">https://github.com/aios2005</a></p>
+            </div>
+            <!-- ESPERA -->
             <div id="painel-espera" class="card" style="display: none;">
                 <h4>Sala: <span id="codigo-sala-display">----</span></h4>
                 <p>Jogadores conectados (<span id="qtd-jogadores">0</span>/6):</p>
@@ -31,6 +36,7 @@
             </div>
         </div>
 
+        <!-- GAME -->
         <div id="tela-jogo" class="screen" style="display: none;">
             <div class="game-header">
                 <div class="letra-rodada">Letra: <span id="letra-sorteada">-</span></div>
@@ -43,19 +49,19 @@
                     <input type="text" class="input-categoria" data-categoria="nome" placeholder="Nome com a letra...">
                 </div>
                 <div class="input-group">
-                    <label>Animal</label>
+                    <label>País</label>
                     <input type="text" class="input-categoria" data-categoria="animal" placeholder="País com a letra...">
                 </div>
                 <div class="input-group">
-                    <label>Objeto</label>
+                    <label>Cidade</label>
                     <input type="text" class="input-categoria" data-categoria="objeto" placeholder="Cidade com a letra...">
                 </div>
                 <div class="input-group">
-                    <label>Fruta/Alimento</label>
+                    <label>Adjetivo</label>
                     <input type="text" class="input-categoria" data-categoria="fruta" placeholder="Adjetivo com a letra...">
                 </div>
                 <div class="input-group">
-                    <label>Cor</label>
+                    <label>Personagem</label>
                     <input type="text" class="input-categoria" data-categoria="cor" placeholder="Personagem com a letra...">
                 </div>
 
@@ -63,6 +69,7 @@
             </form>
         </div>
 
+        <!-- CORRECAO -->
         <div id="tela-correcao" class="screen" style="display: none;">
             <h3>Conferência de Respostas</h3>
             <p class="letra-rodada-mini">Letra da rodada: <span id="letra-correcao-display">-</span></p>
