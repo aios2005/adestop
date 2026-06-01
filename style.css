@@ -1,0 +1,224 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+    background-color: #0f0f11;
+    color: #e1e1e6;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 15px;
+}
+
+.game-container {
+    width: 100%;
+    max-width: 700px; /* Um pouco mais largo para caber a tabela de pontos */
+    margin-top: 10px;
+}
+
+h1 {
+    text-align: center;
+    color: #00adb5;
+    margin-bottom: 20px;
+    font-size: 1.8rem;
+}
+
+h3, h4 {
+    color: #00adb5;
+    margin-bottom: 15px;
+}
+
+/* Cartões e Telas */
+.card {
+    background-color: #18181c;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    text-align: center;
+}
+
+.divisor {
+    margin: 10px 0;
+    color: #7c7c8a;
+    font-size: 0.9rem;
+}
+
+/* Formulários e Inputs */
+input[type="text"] {
+    width: 100%;
+    padding: 12px;
+    background-color: #0f0f11;
+    border: 2px solid #29292e;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 1rem;
+    margin-bottom: 12px;
+    text-align: center;
+    transition: border-color 0.2s;
+}
+
+input[type="text"]:focus {
+    outline: none;
+    border-color: #00adb5;
+}
+
+.input-group {
+    text-align: left;
+    margin-bottom: 15px;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #7c7c8a;
+    font-size: 0.9rem;
+}
+
+.input-categoria {
+    text-align: left !important;
+}
+
+/* Botões */
+button {
+    width: 100%;
+    padding: 14px;
+    font-size: 1rem;
+    font-weight: bold;
+    background-color: #00adb5;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s, opacity 0.2s;
+}
+
+button:hover:not(:disabled) {
+    background-color: #008c95;
+}
+
+button:disabled {
+    background-color: #29292e;
+    color: #7c7c8a;
+    cursor: not-allowed;
+}
+
+.btn-secundario {
+    background-color: #29292e;
+    border: 2px solid #00adb5;
+    color: #00adb5;
+}
+.btn-secundario:hover {
+    background-color: #202024;
+}
+
+.btn-danger {
+    background-color: #ff2e63;
+    font-size: 1.3rem;
+    margin-top: 10px;
+    box-shadow: 0 4px 15px rgba(255, 46, 99, 0.3);
+}
+.btn-danger:hover {
+    background-color: #e02454;
+}
+
+/* Lista de jogadores no Lobby */
+#lista-jogadores {
+    list-style: none;
+    margin: 15px 0;
+    text-align: left;
+}
+
+#lista-jogadores li {
+    background-color: #202024;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    border-left: 4px solid #00adb5;
+}
+
+#aviso-minimo {
+    color: #ff2e63;
+    display: block;
+    margin-top: 8px;
+}
+
+/* Cabeçalho do Jogo */
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #18181c;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.letra-rodada {
+    font-size: 1.4rem;
+    font-weight: bold;
+}
+.letra-rodada span, .letra-correcao-display {
+    color: #00adb5;
+    font-size: 1.8rem;
+}
+
+/* Tabela de Correção Mágica Dinâmica */
+.tabela-container {
+    width: 100%;
+    overflow-x: auto; /* Permite scroll se a tela do celular for muito pequena para 6 colunas */
+    background-color: #18181c;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 20px;
+}
+
+.grid-correcao {
+    display: grid;
+    /* O auto-fit cria colunas dinâmicas dependendo de quantas pessoas jogarem */
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+}
+
+.coluna-jogador {
+    background-color: #202024;
+    padding: 10px;
+    border-radius: 6px;
+    border-top: 4px solid #00adb5;
+}
+
+.nome-coluna-titulo {
+    text-align: center;
+    font-weight: bold;
+    margin-bottom: 12px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #29292e;
+    color: #fff;
+}
+
+.item-resposta {
+    margin-bottom: 10px;
+    background-color: #0f0f11;
+    padding: 8px;
+    border-radius: 4px;
+}
+
+.item-resposta small {
+    display: block;
+    color: #7c7c8a;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+}
+
+.item-resposta p {
+    font-size: 0.95rem;
+    word-break: break-all;
+}
