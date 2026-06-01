@@ -36,7 +36,7 @@ let salaId = null;
 let meuNome = "";
 let meuIdUnico = null;
 let souCriador = false;
-let jaEnvieiNestaRodada = false; // Evita envios duplicados no Firebase
+let escutaAtiva = null;
 
 // OUVINTES DOS BOTÕES INICIAIS
 document.getElementById('btn-criar-sala').addEventListener('click', criarSala);
@@ -99,16 +99,20 @@ function conectarAoLobby() {
     painelEspera.style.display = 'block'; 
     codigoSalaDisplay.textContent = salaId;
 
-    database.ref('salas_adestop/' + salaId).on('value', (snapshot) => {
+    // Guardamos a referência do ouvinte para podermos gerenciar o fluxo sem loops infinitos
+    escutaAtiva = database.ref('salas_adestop/' + salaId);
+    
+    escutaAtiva.on('value', (snapshot) => {
         if (!snapshot.exists()) return;
         const dados = snapshot.val();
 
         listaJogadoresElement.innerHTML = "";
-        const jogadores = dados.jogadores ? Object.values(dados.jogadores) : [];
+        const jogadoresChaves = dados.jogadores ? Object.keys(dados.jogadores) : [];
+        const jogadoresValores = dados.jogadores ? Object.values(dados.jogadores) : [];
         
-        qtdJogadoresElement.textContent = jogadores.length;
+        qtdJogadoresElement.textContent = jogadoresChaves.length;
 
-        jogadores.forEach(p => {
+        jogadoresValores.forEach(p => {
             const li = document.createElement('li');
             li.textContent = p.nome;
             listaJogadoresElement.appendChild(li);
@@ -116,7 +120,7 @@ function conectarAoLobby() {
 
         if (souCriador) {
             btnIniciarJogo.style.display = 'block';
-            if (jogadores.length >= 2) {
+            if (jogadoresChaves.length >= 2) {
                 btnIniciarJogo.disabled = false;
                 btnIniciarJogo.textContent = "INICIAR JOGO";
                 document.getElementById('aviso-minimo').style.display = 'none';
@@ -130,19 +134,36 @@ function conectarAoLobby() {
             document.getElementById('aviso-minimo').textContent = "Aguardando o criador iniciar o jogo...";
         }
 
-        // MONITORA ESTRUTURA DE TRANSIÇÃO DE TELAS
+        // MÁQUINA DE ESTADOS DO JOGO
         if (dados.status === 'jogando') {
             irParaTelaJogo(dados.letra);
-        } else if (dados.status === 'correcao') {
-            // CORREÇÃO DO BUG 2: Se a sala foi para correção e eu ainda não enviei minhas respostas, envia agora!
-            if (!jaEnvieiNestaRodada) {
-                enviarRespostasLocais();
+        } 
+        else if (dados.status === 'processando_stop') {
+            // Alguém bateu STOP! Força o travamento e envio imediato das respostas locais
+            inputsCategoria.forEach(input => input.disabled = true);
+            btnStop.disabled = true;
+            
+            // Pega o que deu tempo de digitar e envia marcando que este jogador terminou o envio
+            const minhasRespostas = {};
+            inputsCategoria.forEach(input => {
+                const categoria = input.getAttribute('data-categoria');
+                minhasRespostas[categoria] = input.value.trim().toUpperCase();
+            });
+
+            database.ref('salas_adestop/' + salaId + '/jogadores/' + meuIdUnico).update({
+                respostas: minhasRespostas,
+                pronto: true // Avisa o banco que minhas respostas já subiram
+            });
+
+            // Se eu for o criador, eu gerencio se todo mundo já terminou de subir os dados
+            if (souCriador) {
+                verificarSeTodosEnviaram(dados.jogadores);
             }
-            // Pequeno delay de 300ms para garantir que o Firebase recebeu o dado de todo mundo antes de desenhar a tabela
-            setTimeout(() => {
-                irParaTelaCorrecao(dados.letra, dados.jogadores);
-            }, 300);
-        } else if (dados.status === 'aguardando' && telaJogo.style.display === 'block') {
+        } 
+        else if (dados.status === 'correcao') {
+            irParaTelaCorrecao(dados.letra, dados.jogadores);
+        } 
+        else if (dados.status === 'aguardando' && telaJogo.style.display === 'block') {
             location.reload(); 
         }
     });
@@ -165,7 +186,6 @@ function irParaTelaJogo(letra) {
     telaJogo.style.display = 'block';
     telaCorrecao.style.display = 'none';
     letraSorteadaElement.textContent = letra;
-    jaEnvieiNestaRodada = false; // Reseta o controle de envio para a nova rodada
     
     inputsCategoria.forEach(input => {
         input.value = "";
@@ -174,43 +194,37 @@ function irParaTelaJogo(letra) {
     btnStop.disabled = false;
 }
 
-// CORREÇÃO DO BUG 1: Validar preenchimento antes de deixar dar STOP
 function dispararStop() {
     let todosPreenchidos = true;
-
     inputsCategoria.forEach(input => {
-        if (input.value.trim() === "") {
-            todosPreenchidos = false;
-        }
+        if (input.value.trim() === "") todosPreenchidos = false;
     });
 
     if (!todosPreenchidos) {
         alert("Você precisa preencher TODAS as categorias antes de bater STOP! 🛑");
-        return; // Cancela a execução da função
+        return;
     }
 
     btnStop.disabled = true;
-    enviarRespostasLocais();
-
-    // Modifica o status da sala na nuvem para travar a tela dos oponentes
+    
+    // Altera o estado para processando_stop, obrigando todos os navegadores a coletarem os dados atuais
     database.ref('salas_adestop/' + salaId).update({
-        status: 'correcao'
+        status: 'processando_stop'
     });
 }
 
-// Função isolada para coletar os inputs atuais e salvar no respectivo nó do jogador
-function enviarRespostasLocais() {
-    jaEnvieiNestaRodada = true;
-    const minhasRespostas = {};
-    
-    inputsCategoria.forEach(input => {
-        const categoria = input.getAttribute('data-categoria');
-        minhasRespostas[categoria] = input.value.trim().toUpperCase();
-    });
+// Função executada apenas no computador do Criador para arbitrar o fim do envio
+function verificarSeTodosEnviaram(objetoJogadores) {
+    const jogadores = Object.values(objetoJogadores);
+    // Verifica se absolutamente TODOS os jogadores da sala estão com a flag 'pronto: true'
+    const todosProntos = jogadores.every(j => j.pronto === true);
 
-    database.ref('salas_adestop/' + salaId + '/jogadores/' + meuIdUnico).update({
-        respostas: minhasRespostas
-    });
+    if (todosProntos) {
+        // Agora sim, com 100% dos dados na nuvem, avançamos com segurança para a correção
+        database.ref('salas_adestop/' + salaId).update({
+            status: 'correcao'
+        });
+    }
 }
 
 // =================== LOGICA DA CORREÇÃO DINÂMICA ===================
@@ -221,7 +235,6 @@ function irParaTelaCorrecao(letra, objetoJogadores) {
     letraCorrecaoDisplay.textContent = letra;
 
     gradeCorrecao.innerHTML = ""; 
-
     const jogadoresIds = Object.keys(objetoJogadores);
 
     jogadoresIds.forEach(id => {
@@ -258,7 +271,9 @@ function reiniciarParaProximaRodada() {
     database.ref('salas_adestop/' + salaId + '/jogadores').once('value', (snapshot) => {
         const jogadores = snapshot.val();
         for (let id in jogadores) {
+            // Reseta as respostas e a flag de prontidão para a próxima rodada
             database.ref('salas_adestop/' + salaId + '/jogadores/' + id + '/respostas').remove();
+            database.ref('salas_adestop/' + salaId + '/jogadores/' + id + '/pronto').set(false);
         }
         database.ref('salas_adestop/' + salaId).update({
             status: 'aguardando',
