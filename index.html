@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AdeStop - Adedonha multiplayer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="game-container">
+        <h1>AdeStop </h1>
+
+        <div id="tela-lobby" class="screen">
+            <div class="card">
+                <h3>Criar ou Entrar numa Sala</h3>
+                <button id="btn-criar-sala">Criar Nova Sala</button>
+                <div class="divisor">ou</div>
+                <input type="text" id="input-sala" placeholder="Código da Sala (Ex: 1234)">
+                <input type="text" id="input-nome" placeholder="Seu Nome/Apelido">
+                <button id="btn-entrar-sala" class="btn-secundario">Entrar na Sala</button>
+            </div>
+
+            <div id="painel-espera" class="card" style="display: none;">
+                <h4>Sala: <span id="codigo-sala-display">----</span></h4>
+                <p>Jogadores conectados (<span id="qtd-jogadores">0</span>/6):</p>
+                <ul id="lista-jogadores">
+                    </ul>
+                <button id="btn-iniciar-jogo" disabled>Aguardando Jogadores...</button>
+                <small id="aviso-minimo">É necessário pelo menos 2 jogadores para iniciar.</small>
+            </div>
+        </div>
+
+        <div id="tela-jogo" class="screen" style="display: none;">
+            <div class="game-header">
+                <div class="letra-rodada">Letra: <span id="letra-sorteada">-</span></div>
+                <div id="tempo-status">Preencha os campos rápido!</div>
+            </div>
+
+            <form id="formulario-adedanha" onsubmit="event.preventDefault();">
+                <div class="input-group">
+                    <label>Nome</label>
+                    <input type="text" class="input-categoria" data-categoria="nome" placeholder="Nome com a letra...">
+                </div>
+                <div class="input-group">
+                    <label>Animal</label>
+                    <input type="text" class="input-categoria" data-categoria="animal" placeholder="País com a letra...">
+                </div>
+                <div class="input-group">
+                    <label>Objeto</label>
+                    <input type="text" class="input-categoria" data-categoria="objeto" placeholder="Cidade com a letra...">
+                </div>
+                <div class="input-group">
+                    <label>Fruta/Alimento</label>
+                    <input type="text" class="input-categoria" data-categoria="fruta" placeholder="Adjetivo com a letra...">
+                </div>
+                <div class="input-group">
+                    <label>Cor</label>
+                    <input type="text" class="input-categoria" data-categoria="cor" placeholder="Personagem com a letra...">
+                </div>
+
+                <button id="btn-stop" class="btn-danger">STOP!</button>
+            </form>
+        </div>
+
+        <div id="tela-correcao" class="screen" style="display: none;">
+            <h3>Conferência de Respostas</h3>
+            <p class="letra-rodada-mini">Letra da rodada: <span id="letra-correcao-display">-</span></p>
+            
+            <div class="tabela-container">
+                <div id="grade-correcao" class="grid-correcao">
+                    </div>
+            </div>
+
+            <button id="btn-proxima-rodada">Próxima Rodada / Reiniciar</button>
+        </div>
+
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
