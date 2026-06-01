@@ -124,7 +124,7 @@ function conectarAoLobby() {
             btnIniciarJogo.style.display = 'block';
             if (jogadores.length >= 2) {
                 btnIniciarJogo.disabled = false;
-                btnIniciarJogo.textContent = "Iniciar Jogo 🎮";
+                btnIniciarJogo.textContent = "INICIAR JOGO";
                 document.getElementById('aviso-minimo').style.display = 'none';
             } else {
                 btnIniciarJogo.disabled = true;
