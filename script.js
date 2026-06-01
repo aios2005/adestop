@@ -12,9 +12,9 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
-// ELEMENTOS DA INTERFACE (Mapeados conforme o seu novo HTML)
+// ELEMENTOS DA INTERFACE
 const telaLobby = document.getElementById('tela-lobby');
-const cardInicial = document.querySelector('.card'); // Card de criar/entrar
+const cardInicial = document.querySelector('.card'); 
 const painelEspera = document.getElementById('painel-espera');
 const listaJogadoresElement = document.getElementById('lista-jogadores');
 const qtdJogadoresElement = document.getElementById('qtd-jogadores');
@@ -36,6 +36,7 @@ let salaId = null;
 let meuNome = "";
 let meuIdUnico = null;
 let souCriador = false;
+let jaEnvieiNestaRodada = false; // Evita envios duplicados no Firebase
 
 // OUVINTES DOS BOTÕES INICIAIS
 document.getElementById('btn-criar-sala').addEventListener('click', criarSala);
@@ -50,11 +51,10 @@ function criarSala() {
     meuNome = document.getElementById('input-nome').value.trim();
     if (!meuNome) { alert("Digite seu nome primeiro!"); return; }
 
-    salaId = Math.floor(1000 + Math.random() * 9000).toString(); // Sala com 4 dígitos
-    meuIdUnico = "player_" + Date.now(); // Gera ID único por timestamp
+    salaId = Math.floor(1000 + Math.random() * 9000).toString(); 
+    meuIdUnico = "player_" + Date.now(); 
     souCriador = true;
 
-    // Estrutura dinâmica na nuvem
     database.ref('salas_adestop/' + salaId).set({
         status: 'aguardando',
         letra: '',
@@ -82,11 +82,9 @@ function entrarSala() {
         const dados = snapshot.val();
         const listaJogadores = dados.jogadores ? Object.keys(dados.jogadores) : [];
 
-        // Limitação dinâmica de vagas (Mínimo 2, Máximo 6)
         if (listaJogadores.length >= 6) { alert("A sala já está cheia (Máximo 6 jogadores)!"); return; }
         if (dados.status !== 'aguardando') { alert("O jogo nesta sala já começou!"); return; }
 
-        // Injeta o novo jogador no array associativo do banco
         salaRef.child('jogadores/' + meuIdUnico).set({
             nome: meuNome,
             pronto: false
@@ -97,19 +95,16 @@ function entrarSala() {
 }
 
 function conectarAoLobby() {
-    cardInicial.style.display = 'none'; // Esconde painel de login
-    painelEspera.style.display = 'block'; // Mostra painel com a lista viva
+    cardInicial.style.display = 'none'; 
+    painelEspera.style.display = 'block'; 
     codigoSalaDisplay.textContent = salaId;
 
-    // Escuta em tempo real mudanças no Lobby
     database.ref('salas_adestop/' + salaId).on('value', (snapshot) => {
         if (!snapshot.exists()) return;
         const dados = snapshot.val();
 
-        // 1. Atualizar lista de jogadores visível
         listaJogadoresElement.innerHTML = "";
         const jogadores = dados.jogadores ? Object.values(dados.jogadores) : [];
-        const ids = dados.jogadores ? Object.keys(dados.jogadores) : [];
         
         qtdJogadoresElement.textContent = jogadores.length;
 
@@ -119,7 +114,6 @@ function conectarAoLobby() {
             listaJogadoresElement.appendChild(li);
         });
 
-        // 2. Controlar ativação do botão iniciar (Apenas o dono da sala pode iniciar)
         if (souCriador) {
             btnIniciarJogo.style.display = 'block';
             if (jogadores.length >= 2) {
@@ -136,13 +130,19 @@ function conectarAoLobby() {
             document.getElementById('aviso-minimo').textContent = "Aguardando o criador iniciar o jogo...";
         }
 
-        // 3. Monitorar transições de telas globais (Mudança de Estados do Jogo)
+        // MONITORA ESTRUTURA DE TRANSIÇÃO DE TELAS
         if (dados.status === 'jogando') {
             irParaTelaJogo(dados.letra);
         } else if (dados.status === 'correcao') {
-            irParaTelaCorrecao(dados.letra, dados.jogadores);
+            // CORREÇÃO DO BUG 2: Se a sala foi para correção e eu ainda não enviei minhas respostas, envia agora!
+            if (!jaEnvieiNestaRodada) {
+                enviarRespostasLocais();
+            }
+            // Pequeno delay de 300ms para garantir que o Firebase recebeu o dado de todo mundo antes de desenhar a tabela
+            setTimeout(() => {
+                irParaTelaCorrecao(dados.letra, dados.jogadores);
+            }, 300);
         } else if (dados.status === 'aguardando' && telaJogo.style.display === 'block') {
-            // Se foi resetado para o lobby
             location.reload(); 
         }
     });
@@ -154,7 +154,6 @@ function iniciarPartidaOficial() {
     const letras = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     const letraSorteada = letras[Math.floor(Math.random() * letras.length)];
 
-    // Altera o estado global na nuvem para disparar a tela de jogo para todos
     database.ref('salas_adestop/' + salaId).update({
         status: 'jogando',
         letra: letraSorteada
@@ -166,8 +165,8 @@ function irParaTelaJogo(letra) {
     telaJogo.style.display = 'block';
     telaCorrecao.style.display = 'none';
     letraSorteadaElement.textContent = letra;
+    jaEnvieiNestaRodada = false; // Reseta o controle de envio para a nova rodada
     
-    // Libera inputs e limpa dados da rodada anterior
     inputsCategoria.forEach(input => {
         input.value = "";
         input.disabled = false;
@@ -175,23 +174,42 @@ function irParaTelaJogo(letra) {
     btnStop.disabled = false;
 }
 
+// CORREÇÃO DO BUG 1: Validar preenchimento antes de deixar dar STOP
 function dispararStop() {
-    btnStop.disabled = true;
-    
-    // Captura as respostas locais do jogador
-    const minhasRespostas = {};
+    let todosPreenchidos = true;
+
     inputsCategoria.forEach(input => {
-        const categoria = input.getAttribute('data-categoria');
-        minhasRespostas[categoria] = input.value.trim().toUpperCase(); // Padroniza em maiúsculo
+        if (input.value.trim() === "") {
+            todosPreenchidos = false;
+        }
     });
 
-    // Envia minhas respostas para a minha subpasta na nuvem e puxa o gatilho de STOP global
+    if (!todosPreenchidos) {
+        alert("Você precisa preencher TODAS as categorias antes de bater STOP! 🛑");
+        return; // Cancela a execução da função
+    }
+
+    btnStop.disabled = true;
+    enviarRespostasLocais();
+
+    // Modifica o status da sala na nuvem para travar a tela dos oponentes
+    database.ref('salas_adestop/' + salaId).update({
+        status: 'correcao'
+    });
+}
+
+// Função isolada para coletar os inputs atuais e salvar no respectivo nó do jogador
+function enviarRespostasLocais() {
+    jaEnvieiNestaRodada = true;
+    const minhasRespostas = {};
+    
+    inputsCategoria.forEach(input => {
+        const categoria = input.getAttribute('data-categoria');
+        minhasRespostas[categoria] = input.value.trim().toUpperCase();
+    });
+
     database.ref('salas_adestop/' + salaId + '/jogadores/' + meuIdUnico).update({
         respostas: minhasRespostas
-    }).then(() => {
-        database.ref('salas_adestop/' + salaId).update({
-            status: 'correcao'
-        });
     });
 }
 
@@ -202,20 +220,17 @@ function irParaTelaCorrecao(letra, objetoJogadores) {
     telaCorrecao.style.display = 'block';
     letraCorrecaoDisplay.textContent = letra;
 
-    gradeCorrecao.innerHTML = ""; // Limpa a tabela
+    gradeCorrecao.innerHTML = ""; 
 
     const jogadoresIds = Object.keys(objetoJogadores);
 
-    // Renderização dinâmica baseada em quem está na sala (2 a 6 colunas automatizadas pelo CSS Grid)
     jogadoresIds.forEach(id => {
         const jogador = objetoJogadores[id];
         const respostas = jogador.respostas || { nome: "", animal: "", objeto: "", fruta: "", cor: "" };
 
-        // Monta o elemento HTML da coluna daquele participante
         const coluna = document.createElement('div');
         coluna.className = 'coluna-jogador';
         
-        // Destaca se a coluna for do próprio usuário logado
         if (id === meuIdUnico) {
             coluna.style.borderColor = '#eeff00';
         }
@@ -232,7 +247,6 @@ function irParaTelaCorrecao(letra, objetoJogadores) {
         gradeCorrecao.appendChild(coluna);
     });
 
-    // Apenas o criador vê o botão de reset/próxima rodada
     if (souCriador) {
         btnProximaRodada.style.display = 'block';
     } else {
@@ -241,7 +255,6 @@ function irParaTelaCorrecao(letra, objetoJogadores) {
 }
 
 function reiniciarParaProximaRodada() {
-    // Limpa os nós de respostas anteriores do banco e joga o estado de volta para o Lobby
     database.ref('salas_adestop/' + salaId + '/jogadores').once('value', (snapshot) => {
         const jogadores = snapshot.val();
         for (let id in jogadores) {
